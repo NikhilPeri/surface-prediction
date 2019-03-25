@@ -61,6 +61,7 @@ def build_training():
     features = pd.read_csv('data/X_train.csv')
 
     features = group_measurements(features)
+    features.reset_index(level=0, inplace=True)
     features = pd.merge(features, labels, on='series_id', how='inner')
 
     return features
