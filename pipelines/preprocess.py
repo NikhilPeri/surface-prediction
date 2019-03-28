@@ -34,22 +34,37 @@ def process_group(samples):
     samples.sort_values('measurement_number', inplace=True)
     samples.reset_index(inplace=True, drop=True)
 
-    measurement = {}
+    feature = {}
     for fc in FEATURE_COLUMNS:
-        measurement[fc] = samples[fc].values
+        feature[fc] = samples[fc].values
 
-    measurement['euler_X'], measurement['euler_Y'], measurement['euler_Z'] = quaternion_to_euler(
-        measurement['orientation_W'], measurement['orientation_X'],
-        measurement['orientation_Y'], measurement['orientation_Z']
+    # Convert quaternion to euler
+    feature['euler_X'], feature['euler_Y'], feature['euler_Z'] = quaternion_to_euler(
+        feature['orientation_W'], feature['orientation_X'],
+        feature['orientation_Y'], feature['orientation_Z']
     )
 
-    for col, values in measurement.items():
-        measurement['fft_' + col] = np.fft.rfft(values)
+    # Frequency Domain Features
+    for col, values in feature.items():
+        fft = np.fft.fft(values)
+        feature['mag_fft_' + col] = np.absolute(fft)
+        feature['phase_fft_' + col] = np.angle(fft)
+        feature['power_fft_' + col] = np.power(feature['mag_fft_' + col], 2)
+        feature['power_density_fft_' + col] = feature['power_fft_' + col] / np.sum(feature['power_fft_' + col])
 
-    return measurement
+    # Signal Statistics
+    for col, values in feature.items():
+        feature['avg_' + col] = np.average(values)
+        feature['sum_' + col] = np.sum(values)
+        feature['var_' + col] = np.var(values)
+        feature['med_' + col] = np.median(values)
+        feature['min_' + col] = np.min(values)
+        feature['max_' + col] = np.max(values)
+
+    return feature
 
 def group_measurements(features):
-    pool = Pool(processes=4)
+    pool = Pool(processes=8)
 
     features.sort_values('series_id', inplace=True)
     grouped_measurements = [ features.iloc[v] for k, v in features.groupby('series_id').groups.items() ]

@@ -27,28 +27,25 @@ def build_features(train_data):
 def build_model(input_shape):
     model = Sequential()
 
-    model.add(GaussianNoise(0.1, input_shape=input_shape))
+    model.add(GaussianNoise(0.001, input_shape=input_shape))
+
     model.add(Conv1D(16, 4, padding='valid', data_format='channels_first'))
     model.add(Conv1D(16, 4, padding='valid', data_format='channels_first'))
-    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
-    model.add(BatchNormalization())
     model.add(Activation('relu'))
+    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
     model.add(Dropout(0.5))
 
     model.add(Conv1D(32, 4, padding='valid', data_format='channels_first'))
     model.add(Conv1D(32, 4, padding='valid', data_format='channels_first'))
-    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
     #model.add(Conv1D(64, 4, strides=2, padding='valid', data_format='channels_first'))
-    model.add(BatchNormalization())
     model.add(Activation('relu'))
+    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
     model.add(Dropout(0.25))
 
     model.add(Conv1D(64, 4, padding='valid', data_format='channels_first'))
     model.add(Conv1D(64, 4, padding='valid', data_format='channels_first'))
-    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
-    #model.add(Conv1D(128, 4, strides=2, padding='valid', data_format='channels_first'))
-    model.add(BatchNormalization())
     model.add(Activation('relu'))
+    model.add(MaxPooling1D(pool_size=2, data_format='channels_first'))
     model.add(Dropout(0.125))
 
     model.add(Flatten())
