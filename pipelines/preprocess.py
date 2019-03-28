@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from sklearn.preprocessing import OneHotEncoder
+from scipy import signal
 
 FEATURE_COLUMNS = [
     'orientation_W',
@@ -44,6 +45,10 @@ def process_group(samples):
         feature['orientation_Y'], feature['orientation_Z']
     )
 
+    # First Derivative
+    for col, values in feature.items():
+        feature['gradient_' + col] = np.gradient(values)
+
     # Frequency Domain Features
     for col, values in feature.items():
         fft = np.fft.fft(values)
@@ -52,23 +57,42 @@ def process_group(samples):
         feature['power_fft_' + col] = np.power(feature['mag_fft_' + col], 2)
         feature['power_density_fft_' + col] = feature['power_fft_' + col] / np.sum(feature['power_fft_' + col])
 
+    # Peak Detection
+    for col, values in feature.items():
+        feature['peak_indicies_' + col], _ = signal.find_peaks(values)
+        feature['peak_widths_' + col], feature['peak_height_' + col], _, _ = signal.peak_widths(values, feature['peak_indicies_' + col])
+        feature['peak_prominences_' + col], _, _ = signal.peak_prominences(values, feature['peak_indicies_' + col])
+
     # Signal Statistics
     for col, values in feature.items():
-        feature['avg_' + col] = np.average(values)
-        feature['sum_' + col] = np.sum(values)
-        feature['var_' + col] = np.var(values)
-        feature['med_' + col] = np.median(values)
-        feature['min_' + col] = np.min(values)
-        feature['max_' + col] = np.max(values)
-
+        if values.shape[0] == 0:
+            feature['avg_' + col] = 0.
+            feature['sum_' + col] = 0.
+            feature['var_' + col] = 0.
+            feature['med_' + col] = 0.
+            feature['min_' + col] = 0.
+            feature['max_' + col] = 0.
+            feature['max_to_min_' + col] = 0.
+            feature['count_' + col] = 0.
+        else:
+            feature['avg_' + col] = np.average(values)
+            feature['sum_' + col] = np.sum(values)
+            feature['var_' + col] = np.var(values)
+            feature['med_' + col] = np.median(values)
+            feature['min_' + col] = np.min(values)
+            feature['max_' + col] = np.max(values)
+            feature['max_to_min_' + col] = np.max(values) - np.min(values)
+            feature['count_' + col] = values.shape[0]
     return feature
 
 def group_measurements(features):
-    pool = Pool(processes=8)
+    pool = Pool(processes=4)
 
     features.sort_values('series_id', inplace=True)
     grouped_measurements = [ features.iloc[v] for k, v in features.groupby('series_id').groups.items() ]
     grouped_measurements = pool.map(process_group, grouped_measurements)
+    pool.close()
+
     return pd.DataFrame(grouped_measurements).rename_axis('series_id')
 
 def build_training():
