@@ -22,48 +22,52 @@ except Exception as e:
 estimator = RandomForestClassifier(
     #n_iter_no_change=10,
     #tol=1e-4,
-    #class_weight='balanced',
-    #bootstrap='True',
-    #max_features='auto',
+    class_weight='balanced',
+    bootstrap=False,
+    n_estimators=800,
+    verbose=1,
     n_jobs=-1
 )
 param_grid = {
-    'n_estimators': np.linspace(200, 2000, num=20, dtype=int),
-    'max_depth': np.arange(5, 20),
-    #'min_samples_split': [2],
+    'n_estimators': [1000],
+    'max_depth': [15, 16, 17, 18],
     #'min_impurity_decrease': [0, 1e-5]
-    'class_weight': [None, 'balanced'],
-    'bootstrap': [True, False],
-    'max_features': ['auto', 'sqrt', 'log2'],
+    #'class_weight': [None, 'balanced'],
+    #'bootstrap': [True, False],
+    'max_features': ['auto', 'sqrt'],
     #'learning_rate': [0.05],
     #'subsample': [1.0]
 }
 
-cv = EvolutionaryAlgorithmSearchCV(estimator=estimator,
-                                   params=param_grid,
-                                   scoring="accuracy",
-                                   cv=StratifiedKFold(n_splits=5),
-                                   verbose=True,
-                                   population_size=6,
-                                   gene_mutation_prob=0.50,
-                                   gene_crossover_prob=0.5,
-                                   tournament_size=3,
-                                   generations_number=20)
-cv.fit(features, labels)
+grid_search = GridSearchCV(estimator=estimator,
+                           param_grid=param_grid,
+                           scoring="accuracy",
+                           cv=5,
+                           n_jobs=-1,
+                           verbose=True)
+grid_search.fit(features, labels)
+
     #sample_weight=compute_sample_weight('balanced', labels)
 #)
 # ExtraTreesClassifier (0.94) {'n_estimators': 700, 'min_impurity_decrease': 1e-05}
 # GradientBoostingClassifier (0.88) Best Params: {'max_features': 'log2', 'n_estimators': 800, 'learning_rate': 0.05, 'max_depth': 9, 'subsample': 1.0}
-# RandomForestClassifier Best Params: {'n_estimators': 800, 'max_depth': 17, 'class_weight': 'balanced'}
+# RandomForestClassifier Best Params: {'n_estimators': 800, 'max_depth': 15, max_features='sqrt' 'class_weight': 'balanced'}
 #
-import pdb; pdb.set_trace()
-print 'All Params: {}'.format(cv.cv_results_)
-print 'Best Score: {}'.format(cv.best_score_)
-print 'Best Params: {}'.format(cv.best_params_)
+print 'All Params: {}'.format(grid_search.cv_results_)
+print 'Best Score: {}'.format(grid_search.best_score_)
+print 'Best Params: {}'.format(grid_search.best_params_)
 
-test_features = build_test()
-test_features = test_features.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
-features = np.array(test_features[test_features.columns].values.tolist())
+try:
+    features = np.load('test_features.npy')
+except Exception as e:
+    train_data = build_training()
+    train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
+    features = np.array(train_data[train_data.columns].values.tolist())
+
+    test_features = build_test()
+    test_features = test_features.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
+    features = np.array(test_features[test_features.columns].values.tolist())
+    np.save('test_features', features)
 
 labels = grid_search.best_estimator_.predict(features)
 

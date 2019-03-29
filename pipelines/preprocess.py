@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import math
+
 from multiprocessing import Pool
 from sklearn.preprocessing import OneHotEncoder
 from scipy import signal
@@ -18,18 +20,20 @@ FEATURE_COLUMNS = [
 ]
 
 def quaternion_to_euler(w, x, y, z):
-        t0 = 2.0 * (w * x + y * z)
-        t1 = 1.0 - 2.0 * (x * x + y * y)
-        X = np.degrees(np.arctan2(t0, t1))
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    X = math.atan2(t0, t1)
 
-        t2 = 2.0 * (w * y - z * x)
-        Y = np.degrees(np.arcsin(t2))
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    Y = math.asin(t2)
 
-        t3 = 2.0 * (w * z + x * y)
-        t4 = 1.0 - 2.0 * (y * y + z * z)
-        Z = np.degrees(np.arctan2(t3, t4))
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    Z = math.atan2(t3, t4)
 
-        return X, Y, Z
+    return X, Y, Z
 
 def process_group(samples):
     samples.sort_values('measurement_number', inplace=True)
@@ -38,6 +42,14 @@ def process_group(samples):
     feature = {}
     for fc in FEATURE_COLUMNS:
         feature[fc] = samples[fc].values
+        feature['abs_' + fc] = np.abs(samples[fc].values)
+
+    feature['norm_quat'] = (feature['orientation_X']**2 + feature['orientation_Y']**2 + feature['orientation_Z']**2 + feature['orientation_W']**2)
+    feature['mod_quat'] = (feature['norm_quat'])**0.5
+    feature['norm_X'] = feature['orientation_X'] / feature['mod_quat']
+    feature['norm_Y'] = feature['orientation_Y'] / feature['mod_quat']
+    feature['norm_Z'] = feature['orientation_Z'] / feature['mod_quat']
+    feature['norm_W'] = feature['orientation_W'] / feature['mod_quat']
 
     # Convert quaternion to euler
     feature['euler_X'], feature['euler_Y'], feature['euler_Z'] = quaternion_to_euler(
@@ -45,9 +57,19 @@ def process_group(samples):
         feature['orientation_Y'], feature['orientation_Z']
     )
 
+    feature['total_angular_velocity'] = (feature['angular_velocity_X'] ** 2 + feature['angular_velocity_Y'] ** 2 + feature['angular_velocity_Z'] ** 2) ** 0.5
+    feature['total_linear_acceleration'] = (feature['linear_acceleration_X'] ** 2 + feature['linear_acceleration_Y'] ** 2 + feature['linear_acceleration_Z'] ** 2) ** 0.5
+    feature['acc_vs_vel'] = feature['total_linear_acceleration'] / feature['total_angular_velocity']
+    feature['total_angle'] = (feature['euler_X'] ** 2 + feature['euler_Y'] ** 2 + feature['euler_Z'] ** 2) ** 0.5
+    feature['angle_vs_acc'] = feature['total_angle'] / feature['total_linear_acceleration']
+    feature['angle_vs_vel'] = feature['total_angle'] / feature['total_angular_velocity']
+
     # First Derivative
     for col, values in feature.items():
         feature['gradient_' + col] = np.gradient(values)
+        feature['abs_gradient_' + col] = np.abs(feature['gradient_' + col])
+        feature['second_gradient_' + col] = np.gradient(feature['gradient_' + col])
+        feature['abs_second_gradient_' + col] = np.gradient(feature['abs_gradient_' + col])
 
     # Frequency Domain Features
     for col, values in feature.items():
@@ -63,27 +85,31 @@ def process_group(samples):
         feature['peak_widths_' + col], feature['peak_height_' + col], _, _ = signal.peak_widths(values, feature['peak_indicies_' + col])
         feature['peak_prominences_' + col], _, _ = signal.peak_prominences(values, feature['peak_indicies_' + col])
 
+    stats = {}
     # Signal Statistics
     for col, values in feature.items():
         if values.shape[0] == 0:
-            feature['avg_' + col] = 0.
-            feature['sum_' + col] = 0.
-            feature['var_' + col] = 0.
-            feature['med_' + col] = 0.
-            feature['min_' + col] = 0.
-            feature['max_' + col] = 0.
-            feature['max_to_min_' + col] = 0.
-            feature['count_' + col] = 0.
+            stats['avg_' + col] = 0.
+            stats['sum_' + col] = 0.
+            stats['var_' + col] = 0.
+            stats['med_' + col] = 0.
+            stats['min_' + col] = 0.
+            stats['max_' + col] = 0.
+            stats['max_to_min_' + col] = 0.
+            if col.startswith('peak_indicies_'):
+                stats['count_' + col] = 0.
         else:
-            feature['avg_' + col] = np.average(values)
-            feature['sum_' + col] = np.sum(values)
-            feature['var_' + col] = np.var(values)
-            feature['med_' + col] = np.median(values)
-            feature['min_' + col] = np.min(values)
-            feature['max_' + col] = np.max(values)
-            feature['max_to_min_' + col] = np.max(values) - np.min(values)
-            feature['count_' + col] = values.shape[0]
-    return feature
+            stats['avg_' + col] = np.average(values)
+            stats['sum_' + col] = np.sum(values)
+            stats['var_' + col] = np.var(values)
+            stats['med_' + col] = np.median(values)
+            stats['min_' + col] = np.min(values)
+            stats['max_' + col] = np.max(values)
+            stats['max_to_min_' + col] = np.max(values) - np.min(values)
+            if col.startswith('peak_indicies_'):
+                stats['count_' + col] = values.shape[0]
+
+    return stats
 
 def group_measurements(features):
     pool = Pool(processes=4)
