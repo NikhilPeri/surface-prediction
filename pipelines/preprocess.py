@@ -20,20 +20,18 @@ FEATURE_COLUMNS = [
 ]
 
 def quaternion_to_euler(w, x, y, z):
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    X = math.atan2(t0, t1)
+        t0 = 2.0 * (w * x + y * z)
+        t1 = 1.0 - 2.0 * (x * x + y * y)
+        X = np.degrees(np.arctan2(t0, t1))
 
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    Y = math.asin(t2)
+        t2 = 2.0 * (w * y - z * x)
+        Y = np.degrees(np.arcsin(t2))
 
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    Z = math.atan2(t3, t4)
+        t3 = 2.0 * (w * z + x * y)
+        t4 = 1.0 - 2.0 * (y * y + z * z)
+        Z = np.degrees(np.arctan2(t3, t4))
 
-    return X, Y, Z
+        return X, Y, Z
 
 def process_group(samples):
     samples.sort_values('measurement_number', inplace=True)
