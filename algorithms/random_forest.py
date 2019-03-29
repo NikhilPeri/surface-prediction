@@ -60,10 +60,6 @@ print 'Best Params: {}'.format(grid_search.best_params_)
 try:
     features = np.load('test_features.npy')
 except Exception as e:
-    train_data = build_training()
-    train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
-    features = np.array(train_data[train_data.columns].values.tolist())
-
     test_features = build_test()
     test_features = test_features.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
     features = np.array(test_features[test_features.columns].values.tolist())
