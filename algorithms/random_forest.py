@@ -31,7 +31,7 @@ param_grid = {
     'n_estimators': [100, 200, 300, 400], # 500 - 0.83963
     'max_depth': [13, 14, 15],
     #'min_impurity_decrease': [0, 1e-5]
-    'class_weight': [None, 'balanced'],
+    #'class_weight': [None, 'balanced'],
     #'bootstrap': [True, False],
     'max_features': ['auto', 'sqrt', 'log2'],
     'learning_rate': [0.1, 0.05],
