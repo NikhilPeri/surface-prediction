@@ -129,6 +129,20 @@ def build_training():
 
     return features
 
+def fetch_training():
+    try:
+        features = np.load('tmp/features.npy')
+    except Exception as e:
+        train_data = build_training()
+        train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
+        features = np.array(train_data[train_data.columns].values.tolist())
+        np.save('tmp/features', features)
+
+    labels = pd.read_csv('data/y_train.csv')
+    labels = labels['surface'].values
+
+    return features, labels
+
 def build_test():
     features = pd.read_csv('data/X_test.csv')
     features = group_measurements(features)
