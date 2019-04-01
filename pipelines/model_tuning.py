@@ -21,7 +21,7 @@ DEFAULT_SEARCH_KWARGS = {
     'n_jobs': multiprocessing.cpu_count()
 }
 
-def search(estimator, param_grid, return_search=False, **kwargs):
+def tune(estimator, param_grid, return_search=False, **kwargs):
     merged_kwargs = DEFAULT_SEARCH_KWARGS.copy()
     merged_kwargs.update(kwargs)
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     model_module = sys.argv[1].replace('/', '.').replace('.py', '')
     model_module = importlib.import_module(model_module)
 
-    score, estimator = search(model_module.estimator, model_module.param_grid)
+    score, estimator = tune(model_module.estimator, model_module.param_grid)
 
     print 'Best Score: {}'.format(score)
     print 'Best Params: {}'.format(estimator.get_params())

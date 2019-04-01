@@ -1,8 +1,13 @@
+import gc
 import numpy as np
 import pandas as pd
 from pipelines.preprocess import build_training, build_test
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.utils.class_weight import compute_sample_weight
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, ExtraTreesClassifier
+from sklearn.model_selection import StratifiedKFold
+from evolutionary_search import EvolutionaryAlgorithmSearchCV
 
 labels = pd.read_csv('data/y_train.csv')
 labels = labels['surface'].values
@@ -16,13 +21,29 @@ except Exception as e:
     np.save('features', features)
 
     train_data = None
-
-estimator = RandomForestClassifier(
-    n_estimators=800,
-    max_depth=15,
-    max_features='sqrt',
-    class_weight='balanced'
+    gc.collect()
+estimator = GradientBoostingClassifier(
+    #n_iter_no_change=10,
+    #tol=1e-4,
+    verbose=3,
 )
+param_grid = {
+    'n_estimators': [300], # 500 - 0.83963
+    'max_depth': [15, 16],
+    #'min_impurity_decrease': [0, 1e-5]
+    #'class_weight': [None, 'balanced'],
+    #'bootstrap': [True, False],
+    'max_features': ['sqrt'],
+    'learning_rate': [0.1],
+    #'subsample': [1.0]
+}
+
+grid_search = GridSearchCV(estimator=estimator,
+                           param_grid=param_grid,
+                           scoring="accuracy",
+                           cv=5,
+                           n_jobs=-1,
+                           verbose=True)
 grid_search.fit(features, labels)
 
     #sample_weight=compute_sample_weight('balanced', labels)

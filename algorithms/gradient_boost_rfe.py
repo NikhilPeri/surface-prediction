@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from pipelines.preprocess import build_training, build_test
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.feature_selection import RFECV
 
 labels = pd.read_csv('data/y_train.csv')
 labels = labels['surface'].values
@@ -14,16 +15,18 @@ except Exception as e:
     train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
     features = np.array(train_data[train_data.columns].values.tolist())
     np.save('features', features)
-
     train_data = None
 
-estimator = RandomForestClassifier(
-    n_estimators=800,
+estimator = GradientBoostingClassifier(
+    n_estimators=300,
     max_depth=15,
     max_features='sqrt',
-    class_weight='balanced'
+    verbose=3,
+    random_state=420
 )
-grid_search.fit(features, labels)
+
+selector = RFECV(estimator, step=0.1, cv=5, verbose=3, min_features_to_select=10000, n_jobs=-1)
+selector = selector.fit(features, labels)
 
     #sample_weight=compute_sample_weight('balanced', labels)
 #)
@@ -31,9 +34,9 @@ grid_search.fit(features, labels)
 # GradientBoostingClassifier (0.88) Best Params: {'max_features': 'log2', 'n_estimators': 800, 'learning_rate': 0.05, 'max_depth': 9, 'subsample': 1.0}
 # RandomForestClassifier Best Params: {'n_estimators': 800, 'max_depth': 15, max_features='sqrt' 'class_weight': 'balanced'}
 #
-print 'All Params: {}'.format(grid_search.cv_results_)
-print 'Best Score: {}'.format(grid_search.best_score_)
-print 'Best Params: {}'.format(grid_search.best_params_)
+
+for x in selector.grid_scores_:
+    print x
 
 try:
     features = np.load('test_features.npy')
@@ -43,13 +46,8 @@ except Exception as e:
     features = np.array(test_features[test_features.columns].values.tolist())
     np.save('test_features', features)
     test_features = None
-    gc.collect()
 
-model = grid_search.best_estimator_
-grid_search = None
-gc.collect()
-
-labels = model.predict(features)
+labels = selector.predict(features)
 
 submission = pd.DataFrame({'surface': labels})
 submission.index.name = 'series_id'
