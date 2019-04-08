@@ -138,10 +138,35 @@ def fetch_training():
         features = np.array(train_data[train_data.columns].values.tolist())
         np.save('tmp/features', features)
 
+    features = np.concatenate([
+        features,
+        np.load('data/fft_embedding/X_train.npy'),
+        np.load('data/signal_embedding/X_train.npy'),
+        np.load('data/wavelet_embedding/X_train.npy')
+    ], axis=1)
+
     labels = pd.read_csv('data/y_train.csv')
     labels = labels['surface'].values
 
     return features, labels
+
+def fetch_test():
+    try:
+        features = np.load('tmp/test_features.npy')
+    except Exception as e:
+        train_data = build_training()
+        train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
+        features = np.array(train_data[train_data.columns].values.tolist())
+        np.save('tmp/test_features', features)
+
+    features = np.concatenate([
+        features,
+        np.load('data/fft_embedding/X_test.npy'),
+        np.load('data/signal_embedding/X_test.npy'),
+        np.load('data/wavelet_embedding/X_test.npy')
+    ], axis=1)
+
+    return features
 
 def build_test():
     features = pd.read_csv('data/X_test.csv')

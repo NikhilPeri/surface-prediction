@@ -24,10 +24,11 @@ if __name__ == '__main__':
 
     score, estimator = train(model_module.estimator)
 
+    score = round(score, 4)
     print 'Best Score: {}'.format(score)
-    
-    model_dir = sys.argv[1]
-    if not os.path.exists(model_dir):
-        os.makedir(model_dir)
 
-    dump(estimator, os.path.join(model_dir, round(score, 4)))
+    model_dir = sys.argv[1].replace('.py', '')
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    dump(estimator, os.path.join(model_dir, 'model-{}.list'.format(score)))
