@@ -2,13 +2,15 @@ import os
 import sys
 import importlib
 from joblib import dump
+import numpy as np
 
 from sklearn.model_selection import StratifiedKFold, cross_validate
 from pipelines.preprocess import fetch_training
 
 def train(estimator, cv_score='accuracy'):
     features, labels = fetch_training()
-
+    features = np.load('data/rfe/reduced_features.npy')
+    
     cv = cross_validate(
         estimator, features, labels,
         cv=StratifiedKFold(n_splits=5),

@@ -106,11 +106,11 @@ def process_group(samples):
             stats['max_to_min_' + col] = np.max(values) - np.min(values)
             if col.startswith('peak_indicies_'):
                 stats['count_' + col] = values.shape[0]
-
+    print 'Done {}'.format(samples['series_id'].max())        
     return stats
 
 def group_measurements(features):
-    pool = Pool(processes=4)
+    pool = Pool(processes=8)
 
     features.sort_values('series_id', inplace=True)
     grouped_measurements = [ features.iloc[v] for k, v in features.groupby('series_id').groups.items() ]
@@ -120,8 +120,8 @@ def group_measurements(features):
     return pd.DataFrame(grouped_measurements).rename_axis('series_id')
 
 def build_training():
-    labels = pd.read_csv('data/y_train.csv')
-    features = pd.read_csv('data/X_train.csv')
+    labels = pd.read_csv('data/y_train_augment.csv')
+    features = pd.read_csv('data/X_train_augment.csv')
 
     features = group_measurements(features)
     features.reset_index(level=0, inplace=True)
@@ -131,39 +131,39 @@ def build_training():
 
 def fetch_training():
     try:
-        features = np.load('tmp/features.npy')
+        features = np.load('tmp/aug_features.npy')
     except Exception as e:
         train_data = build_training()
         train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
         features = np.array(train_data[train_data.columns].values.tolist())
-        np.save('tmp/features', features)
+        np.save('tmp/aug_features', features)
 
     features = np.concatenate([
         features,
-        np.load('data/fft_embedding/X_train.npy'),
-        np.load('data/signal_embedding/X_train.npy'),
-        np.load('data/wavelet_embedding/X_train.npy')
+        np.load('data/fft_embedding/X_train_aug.npy'),
+        np.load('data/signal_embedding/X_train_aug.npy'),
+        np.load('data/wavelet_embedding/X_train_aug.npy')
     ], axis=1)
 
-    labels = pd.read_csv('data/y_train.csv')
+    labels = pd.read_csv('data/y_train_augment.csv')
     labels = labels['surface'].values
 
     return features, labels
 
 def fetch_test():
     try:
-        features = np.load('tmp/test_features.npy')
+        features = np.load('tmp/test_features_aug.npy')
     except Exception as e:
         train_data = build_training()
         train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
         features = np.array(train_data[train_data.columns].values.tolist())
-        np.save('tmp/test_features', features)
+        np.save('tmp/test_features_aug', features)
 
     features = np.concatenate([
         features,
-        np.load('data/fft_embedding/X_test.npy'),
-        np.load('data/signal_embedding/X_test.npy'),
-        np.load('data/wavelet_embedding/X_test.npy')
+        np.load('data/fft_embedding/X_test_aug.npy'),
+        np.load('data/signal_embedding/X_test_aug.npy'),
+        np.load('data/wavelet_embedding/X_test_aug.npy')
     ], axis=1)
 
     return features
