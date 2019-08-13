@@ -3,6 +3,7 @@ import sys
 import importlib
 from joblib import dump
 import multiprocessing
+import numpy as np
 
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from sklearn.model_selection import StratifiedKFold
@@ -12,7 +13,7 @@ from pipelines.preprocess import fetch_training
 DEFAULT_SEARCH_KWARGS = {
     'scoring':'accuracy',
     'cv': StratifiedKFold(n_splits=5),
-    'population_size': 30,
+    'population_size': 10,
     'gene_mutation_prob': 0.10,
     'gene_crossover_prob': 0.5,
     'tournament_size': 3,
@@ -32,6 +33,7 @@ def tune(estimator, param_grid, return_search=False, **kwargs):
     )
 
     features, labels = fetch_training()
+    feature = np.load('data/rfe/X_train.npy')
     cv.fit(features, labels)
 
     if return_search:

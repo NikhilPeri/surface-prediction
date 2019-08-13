@@ -48,19 +48,19 @@ def process_group(samples):
     feature['norm_Y'] = feature['orientation_Y'] / feature['mod_quat']
     feature['norm_Z'] = feature['orientation_Z'] / feature['mod_quat']
     feature['norm_W'] = feature['orientation_W'] / feature['mod_quat']
-
+    '''
     # Convert quaternion to euler
     feature['euler_X'], feature['euler_Y'], feature['euler_Z'] = quaternion_to_euler(
         feature['orientation_W'], feature['orientation_X'],
         feature['orientation_Y'], feature['orientation_Z']
     )
-
+    '''
     feature['total_angular_velocity'] = (feature['angular_velocity_X'] ** 2 + feature['angular_velocity_Y'] ** 2 + feature['angular_velocity_Z'] ** 2) ** 0.5
     feature['total_linear_acceleration'] = (feature['linear_acceleration_X'] ** 2 + feature['linear_acceleration_Y'] ** 2 + feature['linear_acceleration_Z'] ** 2) ** 0.5
     feature['acc_vs_vel'] = feature['total_linear_acceleration'] / feature['total_angular_velocity']
-    feature['total_angle'] = (feature['euler_X'] ** 2 + feature['euler_Y'] ** 2 + feature['euler_Z'] ** 2) ** 0.5
-    feature['angle_vs_acc'] = feature['total_angle'] / feature['total_linear_acceleration']
-    feature['angle_vs_vel'] = feature['total_angle'] / feature['total_angular_velocity']
+    #feature['total_angle'] = (feature['euler_X'] ** 2 + feature['euler_Y'] ** 2 + feature['euler_Z'] ** 2) ** 0.5
+    #feature['angle_vs_acc'] = feature['total_angle'] / feature['total_linear_acceleration']
+    #feature['angle_vs_vel'] = feature['total_angle'] / feature['total_angular_velocity']
 
     # First Derivative
     for col, values in feature.items():
@@ -106,7 +106,7 @@ def process_group(samples):
             stats['max_to_min_' + col] = np.max(values) - np.min(values)
             if col.startswith('peak_indicies_'):
                 stats['count_' + col] = values.shape[0]
-    print 'Done {}'.format(samples['series_id'].max())        
+    print 'Done {}'.format(samples['series_id'].max())
     return stats
 
 def group_measurements(features):
@@ -154,7 +154,7 @@ def fetch_test():
     try:
         features = np.load('tmp/test_features_aug.npy')
     except Exception as e:
-        train_data = build_training()
+        train_data = build_test()
         train_data = train_data.filter(regex='^avg_|^sum_|^med_|^var_|^min_|^max_|^max_to_min_|^count_')
         features = np.array(train_data[train_data.columns].values.tolist())
         np.save('tmp/test_features_aug', features)

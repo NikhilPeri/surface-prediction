@@ -9,8 +9,8 @@ from pipelines.preprocess import fetch_training
 
 def train(estimator, cv_score='accuracy'):
     features, labels = fetch_training()
-    features = np.load('data/rfe/reduced_features.npy')
-    
+    #features = np.load('data/rfe/reduced_features.npy')
+
     cv = cross_validate(
         estimator, features, labels,
         cv=StratifiedKFold(n_splits=5),
